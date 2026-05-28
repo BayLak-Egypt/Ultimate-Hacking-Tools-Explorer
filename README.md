@@ -19,9 +19,12 @@ Ultimate Hacking Tools Explorer is a specialized research repository providing a
    git clone https://github.com/BayLak-Egypt/Ultimate-Hacking-Tools-Explorer.git
    ```
    ```bash
-   git clone https://github.com/BayLak-Egypt/Ultimate-Hacking-Tools-Explorer.git
+    cd Ultimate-Hacking-Tools-Explorer
+   ```
+```bash
+   pip install -r requirements.txt   ```
+```bash
+   python3 main.py
    ```
 
-
-    cd Ultimate-Hacking-Tools-Explorer
 
