@@ -21,9 +21,10 @@ Ultimate Hacking Tools Explorer is a specialized research repository providing a
    ```bash
     cd Ultimate-Hacking-Tools-Explorer
    ```
-```bash
-   pip install -r requirements.txt   ```
-```bash
+   ```bash
+   pip install -r requirements.txt
+   ```
+   ```bash
    python3 main.py
    ```
 
