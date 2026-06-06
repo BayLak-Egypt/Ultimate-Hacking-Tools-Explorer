@@ -36,51 +36,46 @@ def print_ascii_banner():
     console.print("[bold yellow]Usage for unauthorized access or illegal activities is prohibited.")
     console.print("[bold yellow]The user assumes full responsibility for their actions.[/bold yellow]")
     console.print("[bold yellow]========================================================\n")
-def search_baylak_files(base_url, search_query, total_pages=32):
-    layout = Layout()
-    layout.split_column(
-        Layout(name="results", ratio=8),
-        Layout(name="progress", size=3)
-    )
+def search_baylak_files(base_url, search_query):
     results_table = Table(box=box.MINIMAL, expand=True)
-    results_table.add_column("File Name", style="green", ratio=2, no_wrap=True)
+    results_table.add_column("File Name", style="green", ratio=2)
     results_table.add_column("Size", style="magenta", justify="center", ratio=1)
     results_table.add_column("Link", style="blue", ratio=3)
-    progress = Progress(
-        SpinnerColumn(spinner_name="dots"),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(bar_width=40, complete_style="green", finished_style="bold yellow"),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-    )
-    task_id = progress.add_task(f"[bold yellow]Scanning...[/bold yellow]", total=total_pages)
+    seen_links = set()
+    layout = Layout()
+    layout.split_column(Layout(name="results", ratio=8), Layout(name="status", size=3))
     layout["results"].update(results_table)
-    layout["progress"].update(progress)
-    with Live(layout, refresh_per_second=5, console=console):
-        for page in range(1, total_pages + 1):
-            url = f"{base_url}?page={page}"
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            try:
-                response = requests.get(url, headers=headers, timeout=10)
-                soup = BeautifulSoup(response.text, 'html.parser')
-                file_cards = soup.find_all('div', class_='col-lg-3')
-                for card in file_cards:
-                    text = card.get_text(" ", strip=True)
+    def process_and_add(url):
+        try:
+            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for card in soup.find_all('div', class_='col-lg-3'):
+                link_tag = card.find('a', href=True)
+                if not link_tag or link_tag['href'] in seen_links: continue
+                text = card.get_text(" ", strip=True)
+                if search_query.lower() in text.lower():
                     name_match = re.search(r'([\w\s\-\.\(\)]+\.rar)', text, re.IGNORECASE)
                     if name_match:
-                        name = name_match.group(1).strip()
-                        name = re.sub(r'^(rar|0|1)\s+', '', name, flags=re.IGNORECASE)
-                        if "_ed" in name.lower():
-                            name = name.replace("_ed", "_CRACK")
-                        if search_query.lower() in name.lower():
-                            size_match = re.search(r'(\d+\.?\d*\s*(?:KB|MB))', text, re.IGNORECASE)
-                            size = size_match.group(1) if size_match else "N/A"
-                            link_tag = card.find('a', href=True)
-                            link = link_tag['href'] if link_tag else "N/A"
-                            results_table.add_row(name, size, link)
-            except:
-                pass
-            progress.advance(task_id, advance=1)
-            time.sleep(0.1)
+                        name = re.sub(r'^(rar|0|1)\s+', '', name_match.group(1).strip(), flags=re.IGNORECASE)
+                        name = name.replace("_ed", "_CRACK")
+                        size = re.search(r'(\d+\.?\d*\s*(?:KB|MB))', text, re.IGNORECASE)
+                        size = size.group(1) if size else "N/A"
+                        results_table.add_row(name, size, link_tag['href'])
+                        seen_links.add(link_tag['href'])
+            return soup
+        except: return None
+    with Live(layout, refresh_per_second=4, console=console):
+        for page in range(1, 10):
+            layout["status"].update(f"[bold yellow]Scanning Main Page {page}...[/bold yellow]")
+            soup = process_and_add(f"{base_url}?page={page}")
+            if not soup: break
+            for folder in soup.select('a[href*="/users/baylak/"]'):
+                folder_url = folder['href']
+                if folder_url.count('/') > 4:
+                    layout["status"].update(f"[bold cyan]Scanning Folder: {folder_url.split('/')[-1]}...[/bold cyan]")
+                    for f_page in range(1, 6):
+                        f_soup = process_and_add(f"{folder_url}?page={f_page}")
+                        if not f_soup or not f_soup.find_all('div', class_='col-lg-3'): break
 if __name__ == "__main__":
     sys.stdout.write("\033[2J\033[H")
     sys.stdout.flush()
